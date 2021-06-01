@@ -12,60 +12,72 @@ library(tidyverse)
 list_sciNames <- c("Bombus bohemicus","Bombus occidentalis","Bombus suckleyi","Somatochlora septentrionalis","Germaria angustata","Stagnicola kennicotti")
 
 #Search BISON, iDigBio, VertNet, Ecoengine and iNaturalist for occurrences of the species listed above (*Note make sure you review the limit (default is 500) based on the number of occurrences likely to be returned*) 
-SPOCC_occ <-occ(query= list_sciNames, from = c('bison', 'idigbio','vertnet', 'ecoengine','inat'), limit = 20000, has_coords = TRUE, throw_warnings = TRUE)
+SPOCC_occ <-occ(query= list_sciNames, from = c('bison', 'idigbio','vertnet', 'inat'), limit = 60000, has_coords = TRUE, throw_warnings = TRUE)
 
 #Reformat the scientific names, so the data can be split by platform (e.g. BISON, iNaturalist) not species name
 sciname<-str_replace_all(list_sciNames," ","_")
 
 #Extract and combine the occurrence data by platform (e.g. one table for BISON, one table for iNaturalist, etc.)
-bison <- SPOCC_occ$bison$data %>%
+bison <- SPOCC_occ$bison$data[sapply(SPOCC_occ$bison$data, nrow) > 0] %>%
   .[sciname] %>%
   do.call(bind_rows, .)
 
-idig <- SPOCC_occ$idigbio$data %>%
+idig <- SPOCC_occ$idigbio$data[sapply(SPOCC_occ$idigbio$data, nrow) > 0] %>%
   .[sciname] %>%
   do.call(bind_rows, .)
 
-ecoengine <- SPOCC_occ$ecoengine$data %>%
+vertnet <- SPOCC_occ$vertnet$data[sapply(SPOCC_occ$vertnet$data, nrow) > 0] %>%
   .[sciname] %>%
   do.call(bind_rows, .)
 
-vertnet <- SPOCC_occ$vertnet$data %>%
-  .[sciname] %>%
-  do.call(bind_rows, .)
-
-inat <- SPOCC_occ$inat$data %>%
+inat <- SPOCC_occ$inat$data[sapply(SPOCC_occ$inat$data, nrow) > 0] %>%
   .[sciname] %>%
   do.call(bind_rows, .)
 
 #Remove BISON occurrences without coordinates and fossils (*Note: occurrences without coordinates are already removed from all other platforms)
-bison_cleaned<-subset(bison, bison$longitude != "NA", bison$basisOfRecord != "fossil")
+if (dim(bison)[1] != 0) {
+  bison_cleaned <- bison[(!is.na(bison$longitude)) & (bison$basisOfRecord != "fossil"),]
+}else{
+  print("No records returned in BISON")
+  }
 
 #Remove fossils from VertNet occurrences
-vertnet_cleaned<-subset(vertnet,vertnet$basisofrecord != "FossilSpecimen")
+if (dim(vertnet)[1] != 0) {
+  vertnet_cleaned <- vertnet[(vertnet$basisofrecord != "FossilSpecimen"),]
+}else{
+    print("No records returned in VertNet")
+  }
 
 #Select only Research Grade iNaturalist occurrences 
-inat_cleaned<-subset(inat, inat$quality_grade == "research")
+if (dim(inat)[1] != 0) {
+  inat_cleaned <- inat[(inat$quality_grade == "research"),]
+}else{
+  print("No records returned in iNaturalist")
+  }
 
 #Select only variables needed for EBAR project from each platform 
-bisonvariables<-c("catalogNumber", "providedScientificName", "name", "ambiguous", "generalComments", "verbatimLocality", "occurrenceID", "longitude", "basisOfRecord", "collectionID", "institutionID", "license", "latitude", "provider", "centroid", "date", "year", "recordedBy", "prov", "geo")
-bison_final<-bison_cleaned[bisonvariables]
+bisonvariables<-c("catalogNumber", "providedScientificName", "name", "ambiguous", "generalComments", "verbatimLocality", "occurrenceID", "longitude", "basisOfRecord", "collectionID", "institutionID", "license", "latitude", "provider", "date", "year", "recordedBy", "prov", "geo")
+if (exists("bison_cleaned")) {
+  bison_final<-bison_cleaned[bisonvariables]
+}else{print("No records returned in BISON")
+  }
 
 vertvariables<-c("name","longitude","latitude","prov","month","verbatimcoordinatesystem","day","occurrenceid","identificationqualifier","coordinateuncertaintyinmeters","year","basisofrecord","geodeticdatum","georeferenceprotocol","stateprovince","verbatimlocality","references","license","georeferenceverificationstatus","eventdate","individualcount","catalognumber","locality","locationremarks","occurrenceremarks","coordinateprecision")
-vertnet_final<-vertnet_cleaned[vertvariables]
-
-ecovariables<-c("url","key","longitude", "latitude", "observation_type", "name", "source", "locality", "coordinate_uncertainty_in_meters", "recorded_by", "prov", "begin_date")
-eco_final<-ecoengine[ecovariables]
+if (exists("vertnet_cleaned")) {
+  vertnet_final<-vertnet_cleaned[vertvariables]
+}else{"No records returned in VertNet"}
 
 idigbiovariables<-c("catalognumber", "datasetid","basisofrecord","etag", "canonicalname", "collector", "collectionname", "coordinateuncertainty", "datecollected", "eventdate", "longitude", "latitude", "individualcount", "institutionname", "locality","occurrenceid","uuid","prov","name")
-idig_final<-idig[idigbiovariables]
+if (exists("idig")) {
+  idig_final<-idig[idigbiovariables]
+}else{"No records returned in VertNet"}
 
-inatvariables<-c("uuid","out_of_range","id","observed_on","description","latitude","longitude","place_guess","positional_accuracy","geoprivacy","quality_grade","uri","identifications_count","captive","public_positional_accuracy","taxon_geoprivacy","name","prov")
-inat_final<-inat_cleaned[inatvariables]
+inatvariables<-c("uuid","out_of_range","id","observed_on","description","latitude","longitude","place_guess","positional_accuracy","geoprivacy","quality_grade","uri","identifications_count","captive","public_positional_accuracy","taxon_geoprivacy","name","prov", "license_code", "obscured")
+if (exists("inat_cleaned")) {inat_final<-inat_cleaned[inatvariables]
+}else{"No records returned in iNaturalist"}
 
 #Export data as csv to specified folder
 write.csv(bison_final,file="C:/Desktop/BISON_Data.csv")
 write.csv(vertnet_final,file="C:/Desktop/VertNet_Data.csv")
-write.csv(eco_final,file="C:/Desktop/EcoEngine_Data.csv")
 write.csv(idig_final,file="C:/Desktop/iDigBio_Data.csv")
 write.csv(inat_final,file="C:/Desktop/iNat_Data.csv")
