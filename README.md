@@ -1,5 +1,5 @@
 # SpeciesDownload
-R code for downloading species observation data from GBIF, BISON, VertNet, EcoEngine, iDigBio and iNaturalist<br>
+R code for downloading species observation data from GBIF, BISON, VertNet, iDigBio, iNaturalist, and eBird<br>
 Project: Ecosytem-based Automated Range Mapping (EBAR)<br>
-Credits: Christine Terwissen, Gabrielle Miller, R package providers documented within<br>
-© NatureServe Canada 2020 under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+Credits: Gabrielle Miller, Christine Terwissen, R package providers documented within<br>
+© NatureServe Canada 2022 under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
